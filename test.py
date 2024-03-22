@@ -19,7 +19,7 @@ facedetect=cv2.CascadeClassifier('data/haarcascade_frontalface_default.xml')
 
 with open('data/names.pkl', 'rb') as w:
     LABELS=pickle.load(w)
-with open('data/faces.pkl', 'rb') as f:
+with open('data/faces_data.pkl', 'rb') as f:
     FACES=pickle.load(f)
 
 print('Shape of Faces matrix --> ', FACES.shape)
@@ -37,8 +37,23 @@ while True:
     faces=facedetect.detectMultiScale(gray, 1.3 ,5)
     for (x,y,w,h) in faces:
         crop_img=frame[y:y+h, x:x+w, :]
-        resized_img=cv2.resize(crop_img, (50,50)).flatten().reshape(1,-1)
-        output=knn.predict(resized_img)
+        resized_img = cv2.resize(crop_img, (50, 50))
+
+        # Ensure the resized image has 3 color channels (RGB)
+        assert resized_img.shape[2] == 3, "Resized image does not have 3 color channels"
+
+        # Flatten the resized image to a 1D array
+        flattened_img = resized_img.flatten()
+
+        # Ensure the flattened image has the correct shape (7500 features for RGB images)
+        expected_features = 50 * 50 * 3  # 7500 for RGB images
+        assert flattened_img.shape[0] == expected_features, f"Flattened image shape ({flattened_img.shape[0]}) does not match expected shape ({expected_features})"
+
+        # Reshape the flattened image to a 2D array with a single sample
+        resized_img_2d = flattened_img.reshape(1, -1)
+
+        # Now you can use resized_img_2d as input for prediction with your KNeighborsClassifier
+        output = knn.predict(resized_img_2d)
         ts=time.time()
         date=datetime.fromtimestamp(ts).strftime("%d-%m-%Y")
         timestamp=datetime.fromtimestamp(ts).strftime("%H:%M-%S")
